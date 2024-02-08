@@ -1,95 +1,107 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
 
-export default function Home() {
+import { useState } from 'react';
+import { DataFactory, NamedNode, Literal, Store, Writer, toRDF } from 'n3';
+
+export default function CreateOntology() {
+  const [ontologyName, setOntologyName] = useState('');
+  const [properties, setProperties] = useState([]);
+
+  const handleAddProperty = () => {
+    setProperties([...properties, '']);
+  };
+
+  const handleChangePropertyName = (index, value) => {
+    const updatedProperties = [...properties];
+    updatedProperties[index] = value;
+    setProperties(updatedProperties);
+  };
+
+  const handleCreateOntology = () => {
+    // Construct RDF triples based on the properties
+    const rdfTriples = properties.map((property, index) => ({
+      subject: `ex:Subject${index + 1}`,
+      predicate: 'ex:hasProperty',
+      object: `"${property}"`,
+    }));
+
+    // Create a new RDF store
+    const store = new Store();
+
+    // Add RDF triples to the store
+    rdfTriples.forEach(triple => {
+      const statement = DataFactory.quad(
+        DataFactory.namedNode(`http://example.org/${triple.subject}`),
+        DataFactory.namedNode(`http://example.org/${triple.predicate}`),
+        DataFactory.literal(triple.object.replace(/\"/g, ''))
+      );
+      store.addQuad(statement);
+    });
+
+    // Serialize RDF store into RDF/XML format
+    const writer = new Writer();
+    writer.addQuads([...store]);
+    let rdfData = `<?xml version="1.0" encoding="UTF-8"?>
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+             xmlns:ex="http://example.org/">\n`;
+    
+    // Add RDF triples to the RDF/XML data
+    store.getQuads().forEach(quad => {
+      const subject = quad.subject.value.replace('http://example.org/', 'ex:');
+      const predicate = quad.predicate.value.replace('http://example.org/', 'ex:');
+      const object = quad.object.termType === 'Literal' ? `"${quad.object.value}"` : quad.object.value.replace('http://example.org/', 'ex:');
+      rdfData += `  <rdf:Description rdf:about="${subject}">
+        <${predicate}>${object}</${predicate}>
+      </rdf:Description>\n`;
+    });
+    
+    rdfData += `</rdf:RDF>`;
+    
+    // Create a Blob containing the RDF data
+    const blob = new Blob([rdfData], { type: 'application/rdf+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary link and click it to trigger the download
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${ontologyName}.rdf`);
+    document.body.appendChild(link);
+    link.click();
+
+    // Clean up by revoking the URL
+    URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <>
+      <div className="container">
+        <h1 className="mt-5">Ontology Editor</h1>
+        <div className="form-group">
+          <label>Ontology Name:</label>
+          <input
+            type="text"
+            className="form-control"
+            value={ontologyName}
+            onChange={(e) => setOntologyName(e.target.value)}
+          />
         </div>
+        <div className="form-group">
+          <button className="btn btn-primary mr-2" onClick={handleAddProperty}>Add Property</button>
+        </div>
+        {properties.map((property, index) => (
+          <div className="form-group" key={index}>
+            <label>Property {index + 1}:</label>
+            <input
+              type="text"
+              className="form-control"
+              value={property}
+              onChange={(e) => handleChangePropertyName(index, e.target.value)}
+            />
+          </div>
+        ))}
+        <button className="btn btn-success" onClick={handleCreateOntology}>Create Ontology Data</button>
       </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </>
   );
 }
