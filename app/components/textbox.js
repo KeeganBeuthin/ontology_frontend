@@ -1,25 +1,25 @@
 import React from 'react';
-import { shapes } from 'jointjs';
 
-const TextBoxComponent = ({ position, text }) => {
-  const textBox = new shapes.standard.TextBlock({
-    position: { x: 0, y: 0 },
-    size: { width: 100, height: 40 },
-    attrs: {
-      label: {
-        text: text,
-        fill: 'black',
-        'font-size': 12,
-      },
-      body: {
-        fill: 'lightyellow',
-      },
-    },
-  });
-
+const TextBoxComponent = ({ position, text, onMouseDown }) => {
   return (
-    <div style={{ position: 'absolute', left: position.x, top: position.y }}>
-      <div ref={(node) => { node && node.appendChild(textBox.render().el); }} />
+    <div
+      style={{
+        position: 'absolute',
+        left: position.x,
+        top: position.y,
+        width: '100px',
+        height: '40px',
+        backgroundColor: 'lightyellow',
+        border: '1px solid black',
+        cursor: 'move',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      draggable
+      onMouseDown={onMouseDown}
+    >
+      {text}
     </div>
   );
 };

@@ -1,7 +1,8 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import ArrowComponent from '../components/arrow'; // Corrected import path
-import TextBoxComponent from '../components/textbox'
+import SidebarArrow from '../components/sidebarArrow'; // Import SidebarArrow component
+import TextBoxComponent from '../components/textbox';
 
 const IndexPage = () => {
   const [entities, setEntities] = useState([]);
@@ -9,23 +10,39 @@ const IndexPage = () => {
   useEffect(() => {
     // This code will run only on the client-side
     if (typeof document !== 'undefined') {
+     
       const handleDrop = (event) => {
         event.preventDefault();
         const elementType = event.dataTransfer.getData('element_type');
-
+      
         if (elementType) {
           const dropZoneRect = document.getElementById('drop-zone').getBoundingClientRect();
-          const newEntity = {
-            id: `entity-${entities.length + 1}`,
-            type: elementType,
-            position: {
-              x: event.clientX - dropZoneRect.left + window.pageXOffset,
-              y: event.clientY - dropZoneRect.top + window.pageYOffset,
-            },
+          const newPosition = {
+            x: event.clientX - dropZoneRect.left + window.pageXOffset,
+            y: event.clientY - dropZoneRect.top + window.pageYOffset,
           };
+      
+          // Create a new entity based on the type
+          let newEntity;
+          if (elementType === 'Arrow') {
+            newEntity = {
+              id: `entity-${entities.length + 1}`,
+              type: 'Arrow',
+              position: newPosition,
+            };
+          } else if (elementType === 'TextBox') {
+            newEntity = {
+              id: `entity-${entities.length + 1}`,
+              type: 'TextBox',
+              position: newPosition,
+            };
+          }
+      
+          // Add the new entity to the list of entities
           setEntities([...entities, newEntity]);
         }
       };
+      
 
       const handleDragOver = (event) => {
         event.preventDefault();
@@ -46,8 +63,6 @@ const IndexPage = () => {
     event.dataTransfer.setData('element_type', elementType);
   };
 
-
-
   const handleMouseDown = (event, entityId) => {
     const initialMouseX = event.clientX;
     const initialMouseY = event.clientY;
@@ -55,10 +70,10 @@ const IndexPage = () => {
     const entityIndex = entities.findIndex((entity) => entity.id === entityId);
     const initialEntityX = entities[entityIndex].position.x;
     const initialEntityY = entities[entityIndex].position.y;
-    
+
     const dropZoneRect = document.getElementById('drop-zone').getBoundingClientRect();
     const entityRect = event.target.getBoundingClientRect();
-    
+
     // Calculate the left boundary dynamically based on the width of the entity
     const minEntityX = dropZoneRect.left - initialMouseX + initialEntityX;
     const maxEntityX = dropZoneRect.right - entityRect.width / 2;
@@ -91,7 +106,6 @@ const IndexPage = () => {
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-
   const handleRemoveEntity = (entityId) => {
     const updatedEntities = entities.filter((entity) => entity.id !== entityId);
     setEntities(updatedEntities);
@@ -100,17 +114,13 @@ const IndexPage = () => {
   return (
     <div style={{ display: 'flex' }}>
       {/* Sidebar with example elements */}
-      <div
-        style={{
-          width: '20%',
-          backgroundColor: '#f0f0f0',
-          padding: '20px',
-          borderRight: '1px solid #ccc',
-        }}
-      >
-        {/* Arrow component */}
-        <ArrowComponent position={{ x: 10, y: 10 }} /> {/* Use ArrowComponent here */}
-        {/* Text Box component */}
+      <div style={{ width: '20%', backgroundColor: '#f0f0f0', padding: '20px', borderRight: '1px solid #ccc' }}>
+        {/* SidebarArrow component */}
+        <SidebarArrow
+          onDragStart={(event) => handleDragStart(event, 'Arrow')}
+        />
+        
+        {/* Text box component */}
         <div
           draggable
           onDragStart={(event) => handleDragStart(event, 'TextBox')}
@@ -131,29 +141,32 @@ const IndexPage = () => {
         }}
       >
         {/* Render existing entities */}
-        {entities.map((entity) => (
-          <div
-            key={entity.id}
-            onMouseDown={(event) => handleMouseDown(event, entity.id)}
-            style={{
-              position: 'absolute',
-              left: entity.position.x,
-              top: entity.position.y,
-              border: '1px solid #000',
-              padding: '10px',
-              backgroundColor: 'lightblue',
-            }}
-          >
-            <span>{entity.type}</span>
-            <button onClick={() => handleRemoveEntity(entity.id)}>Remove</button>
-          </div>
-        ))}
+{entities.map((entity) => {
+  if (entity.type === 'Arrow') {
+    return (
+      <ArrowComponent
+        key={entity.id}
+        startPosition={entity.position}
+        endPosition={{ x: entity.position.x + 100, y: entity.position.y + 100 }}
+      />
+    );
+  } else if (entity.type === 'TextBox') {
+    return (
+      <TextBoxComponent
+        key={entity.id}
+        position={entity.position}
+        text="Text"
+        onMouseDown={(event) => handleMouseDown(event, entity.id)}
+      />
+    );
+  } else {
+    return null;
+  }
+})}
+
       </div>
     </div>
   );
 };
 
 export default IndexPage;
-
-
-

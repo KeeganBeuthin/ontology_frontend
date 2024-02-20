@@ -1,39 +1,84 @@
-// components/Arrow.js
+import React, { useState } from 'react';
 
-import React, { useEffect, useRef } from 'react';
-import { dia } from 'jointjs';
+const ArrowComponent = ({ startPosition, endPosition, onDrop }) => {
+  const [dragging, setDragging] = useState(false);
+  const [position, setPosition] = useState({ x: startPosition.x, y: startPosition.y });
 
-const ArrowComponent = ({ width, height, fillColor }) => {
-  const paperRef = useRef(null);
+  const handleMouseDown = (event) => {
+    event.preventDefault();
+    setDragging(true);
+  };
 
-  useEffect(() => {
-    const paper = new dia.Paper({
-      el: paperRef.current,
-      width: width || 100,
-      height: height || 100,
-      gridSize: 1,
-    });
+  const handleMouseMove = (event) => {
+    if (dragging) {
+      // Calculate the new position based on mouse movement
+      const newX = position.x + event.movementX;
+      const newY = position.y + event.movementY;
 
-    const arrow = new dia.Link({
-      source: { x: 50, y: 50 },
-      target: { x: 200, y: 50 },
-      attrs: {
-        '.connection': {
-          stroke: 'black',
-          'stroke-width': 2,
-        },
-        '.marker-target': {
-          d: 'M 10 0 L 0 5 L 10 10 z',
-          fill: fillColor || 'black',
-          stroke: 'black',
-        },
-      },
-    });
+      // Update the position
+      setPosition({ x: newX, y: newY });
+    }
+  };
 
-    paper.model.addCells([arrow]);
-  }, []);
+  const handleMouseUp = () => {
+    if (dragging) {
+      setDragging(false);
 
-  return <div ref={paperRef} />;
+      // If onDrop function is provided and within drop zone boundaries, trigger onDrop
+      if (onDrop && isWithinDropZone(position)) {
+        onDrop(position);
+      }
+    }
+  };
+
+  const isWithinDropZone = (arrowPosition) => {
+    const dropZoneRect = document.getElementById('drop-zone').getBoundingClientRect();
+    return (
+      arrowPosition.x >= dropZoneRect.left &&
+      arrowPosition.x <= dropZoneRect.right &&
+      arrowPosition.y >= dropZoneRect.top &&
+      arrowPosition.y <= dropZoneRect.bottom
+    );
+  };
+
+  return (
+    <svg
+      width={Math.abs(endPosition.x - startPosition.x)}
+      height={Math.abs(endPosition.y - startPosition.y)}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      style={{
+        position: 'absolute',
+        left: position.x,
+        top: position.y,
+        cursor: dragging ? 'grabbing' : 'grab',
+      }}
+    >
+      {/* Arrow line */}
+      <line
+        x1={0}
+        y1={0}
+        x2={endPosition.x - startPosition.x}
+        y2={endPosition.y - startPosition.y}
+        stroke="black"
+        strokeWidth="2"
+        markerEnd="url(#arrowhead)"
+      />
+
+      {/* Arrowhead marker */}
+      <marker
+        id="arrowhead"
+        markerWidth="10"
+        markerHeight="7"
+        refX="9"
+        refY="3.5"
+        orient="auto"
+      >
+        <polygon points="0 0, 10 3.5, 0 7" fill="black" />
+      </marker>
+    </svg>
+  );
 };
 
 export default ArrowComponent;
